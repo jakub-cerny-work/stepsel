@@ -29,18 +29,32 @@ def group_over_columns(dt: pd.DataFrame, columns: ArrayLike, agg_dict: dict) -> 
     >>> group_over_columns(dt, [["ts_new9_g", "drzitel_vek_nace_kat2"], "drpou_cpp_dop3"], {"smlr": "sum", "preds": "mean", target: "mean"})
     """
     comparison = pd.DataFrame()
+    rename_dict = {}
     for var in columns:
 
         # Prepare rename dict
         if np.size(var) > 1:
-            rename_dict = {}
             for i, v in enumerate(var):
                 rename_dict.update({v: f"level_{i + 1}"})
         else:
-            rename_dict = {var: "level_1"}
+            rename_dict.update({var: "level_1"})
 
         # Group data
-        gr = dt.groupby(var).agg(agg_dict).reset_index().rename(columns=rename_dict)
+        gr = dt.groupby(var).agg(agg_dict) #.reset_index().rename(columns=rename_dict)
+        
+        ## Get rid of multiindex
+        if gr.columns.nlevels > 1:
+            gr.columns = ["_".join(col) if col[1] != "" else col[0] for col in gr.columns.values]
+            rename_dict_cols = {}
+            rename_dict_cols_reversed = {}
+        else:
+            cols_original = gr.columns
+            rename_dict_cols = {col: f"{col}_tmp" for col in cols_original} # Rename columns to avoid overwriting and error of same name
+            rename_dict_cols_reversed = {f"{col}_tmp": col for col in cols_original}
+        gr = gr.rename(columns=rename_dict_cols) \
+                .reset_index() \
+                .rename(columns=rename_dict) \
+                .rename(columns=rename_dict_cols_reversed)
 
         # Add variable name
         if np.size(var) > 1:
@@ -55,24 +69,17 @@ def group_over_columns(dt: pd.DataFrame, columns: ArrayLike, agg_dict: dict) -> 
     # Reset index
     comparison.reset_index(drop=True, inplace=True)
 
-    # Get rid of multiindex
-    if comparison.columns.nlevels > 1:
-        comparison.columns = ["_".join(col) if col[1] != "" else col[0] for col in comparison.columns.values]
-
     # Reorder columns - variables and levels first, then the rest
-    if comparison.shape[1] == (len(agg_dict) + 2):
-        # Only one variable - no need to reorder
-        # Rename to be consistent with previous version output
-        comparison = comparison.rename(columns={"variable_1": "variable", "level_1": "level"})
-    else:
-        columns = list(comparison.columns)
-        columns_to_move = ["variable", "level"]
-        columns_to_move = sum([list(map(lambda x: f"{x}_{i + 1}", columns_to_move)) for i in np.arange(np.size(var))], [])
-        # Keeps order of aggregated columns
-        for col in columns:
-            if col not in columns_to_move:
-                columns_to_move.append(col)
+    columns_output = list(comparison.columns)
+    columns_to_move = ["variable", "level"]
+    ## Number of variables
+    n_variables = max(list(map(lambda x: len(x) if isinstance(x,list) else 1, columns)))
+    columns_to_move = sum([list(map(lambda x: f"{x}_{i + 1}", columns_to_move)) for i in np.arange(n_variables)], [])
+    # Keeps order of aggregated columns
+    for col in columns_output:
+        if col not in columns_to_move:
+            columns_to_move.append(col)
 
-        comparison = comparison[columns_to_move]
+    comparison = comparison[columns_to_move]
 
     return comparison
