@@ -56,6 +56,11 @@ def bin_values(data: ArrayLike, thresholds: ArrayLike, right=True) -> np.ndarray
     ----
     * Add option to return pd.Categorical ordered by thresholds.
     """
+    # Raise error if thresholds are empty
+    if len(thresholds) == 0:
+        raise ValueError("Thresholds should not be empty.")
+    # Sort the thresholds
+    thresholds = np.sort(thresholds)
     # Bin the data
     bins = np.digitize(data, thresholds, right=right)
     # Create string variable based on the bin intervals with brackets based on right parameter
