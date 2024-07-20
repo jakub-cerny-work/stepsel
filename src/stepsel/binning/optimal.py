@@ -503,7 +503,7 @@ class OptimalBinningUsingDecisionTreeRegressor():
 
         cv_cp_paths = np.empty(shape=(0,), dtype=np.float64)
         for train_index, test_index in cv_folds.split(X):
-            cp_path = tree_model.cost_complexity_pruning_path(X[train_index], y[train_index], w[train_index])
+            cp_path = tree_model.cost_complexity_pruning_path(X[train_index], y[train_index], w[train_index] if w is not None else None)
             cv_cp_paths = np.append(cv_cp_paths, cp_path["ccp_alphas"])
         # Drop duplicates
         cv_cp_paths = np.unique(cv_cp_paths)
@@ -608,25 +608,6 @@ class OptimalBinningUsingDecisionTreeRegressor():
         best_cp_params = cv_cp_paths[np.isin(cv_cp_paths_kmeans_clusters, cluster_for_extensive_search)]
         return best_cp_params
 
-    @staticmethod
-    def _get_cut_points(gs):
-        """Get optimal cut points for each feature.
-        
-        Parameters
-        ----------
-        gs : GridSearchCV object
-            Fitted GridSearchCV object.
-        
-        Returns
-        -------
-        feature_cut_points : dict
-        """
-        n_features = gs.best_estimator_.tree_.n_features 
-        features = gs.best_estimator_.tree_.feature
-        cut_points = gs.best_estimator_.tree_.threshold
-        feature_cut_points = {f: np.sort(np.unique(cut_points[np.where(features == f)])) for f in features if f >= 0} # negative numbers are nodes without split
-        return feature_cut_points
-
     def _collect_results(self, gs):
         """Collects the results from the grid search.
 
@@ -687,7 +668,7 @@ class OptimalBinningUsingDecisionTreeRegressor():
         y : array-like of shape (n_samples,) or (n_samples, n_outputs)
             The predicted classes, or the predict values.
         """
-        return self.final_model.predict(X)
+        return self.final_model.predict(np.array(X))
 
 
     def bin_values(self, data: ArrayLike) -> np.ndarray:
@@ -703,6 +684,8 @@ class OptimalBinningUsingDecisionTreeRegressor():
         binned_values : array-like
             The binned values.
         """
+        if len(self.cut_points) == 0:
+            raise ValueError("The model has not been fitted yet or the cut points are not available, e.g. no optimal cut points found.")
         # Keys can be numeric ids or feature names if feature_names were provided
         dict_key = list(self.cut_points.keys())[0]
         result = bin_values(data, self.cut_points[dict_key])
@@ -735,6 +718,12 @@ class OptimalBinningUsingDecisionTreeRegressor():
         """
         # Save feature names if X is a dataframe
         self._check_feature_names(X)
+
+        # Convert to numpy arrays
+        if not isinstance(X, np.ndarray):
+            X = np.array(X)
+        if not isinstance(y, np.ndarray):
+            y = np.array(y)
 
         self.Log.log_init()
 
