@@ -2,6 +2,7 @@
 Helper functions for binning. Smaller functions that are used in multiple binning functions.
 """
 import numpy as np
+from pandas import Series
 from numpy.typing import ArrayLike
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
@@ -22,6 +23,13 @@ def get_tree_cut_points(clf: DecisionTreeRegressor | DecisionTreeClassifier, fea
     feature_cut_points : dict
         A dictionary with the feature names as keys and the cut points as values.
     """
+    # Test if clf is a decision tree
+    if not isinstance(clf, DecisionTreeRegressor) and not isinstance(clf, DecisionTreeClassifier):
+        raise ValueError("clf should be a DecisionTreeRegressor or DecisionTreeClassifier.")
+    # Test if feature_names is None or array-like
+    if feature_names is not None and not isinstance(feature_names, (list, np.ndarray, Series)):
+        raise ValueError("feature_names should be None or array-like.")
+
     features = clf.tree_.feature
     cut_points = clf.tree_.threshold
 
