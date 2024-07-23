@@ -187,6 +187,7 @@ def adjust_model_matrix(model_matrices: list, adjusted_coeffs: dict, offsets: li
     # Check if the shape of the offsets is equal to the number of rows in the model matrices
     else:
         for i in range(len(offsets)):
+            offsets[i] = pd.Series(offsets[i])
             if offsets[i].shape[0] != model_matrices[i].shape[0]:
                 raise Exception(f"The number of rows in the model matrix {i} is not equal to the number of offset values.")
     
