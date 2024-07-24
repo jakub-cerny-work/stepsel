@@ -36,7 +36,6 @@ class ScoringTableGLM():
         Parameters
         ----------
         scoring_table : pd.DataFrame
-            Scoring table created by the create_glm_scoring_table() function.
             Required columns: var1, var2, level_var1, level_var2, estimate
 
         Raises
@@ -56,8 +55,6 @@ class ScoringTableGLM():
             level_var1: Level of the first variable in the interaction
             level_var2: Level of the second variable in the interaction
             estimate: Estimate of the interaction
-
-        The scoring table can be created by the create_glm_scoring_table() function.
         """
         # Check if scoring table is a DataFrame with the required columns
         if not isinstance(scoring_table, pd.DataFrame):
@@ -204,7 +201,8 @@ class ScoringTableGLM():
             raise ValueError("scoring_table must contain the following columns: "
                              f"{', '.join(required_columns)}.")
         # Convert to string where not None
-        scoring_table.loc[:,['var1', 'var2', 'level_var1', 'level_var2']] = scoring_table.loc[:,['var1', 'var2', 'level_var1', 'level_var2']].applymap(lambda x: str(x) if x is not np.nan else None)
+        for column in ['var1', 'var2', 'level_var1', 'level_var2']:
+            scoring_table[column] = scoring_table[column].map(lambda x: str(x) if x is not np.nan else None)
         return cls(scoring_table)
 
     def __repr__(self) -> str:
@@ -224,7 +222,6 @@ class ScoringTableGLM():
         Parameters
         ----------
         scoring_table : pd.DataFrame
-            Scoring table created by the create_glm_scoring_table() function.
             Required columns: var1, var2, level_var1, level_var2
 
         Returns
@@ -309,7 +306,7 @@ class ScoringTableGLM():
         Uses
         ----
         self.scoring_table : pandas.DataFrame
-            Scoring table with columns: var1, var2, level_var1, level_var2, estimate as created by create_glm_scoring_table function
+            Scoring table with columns: var1, var2, level_var1, level_var2, estimate.
 
         Notes
         -----
@@ -364,7 +361,7 @@ class ScoringTableGLM():
                 return f" when TRIM(CAST({row['var1']} as varchar(999))) = '{row['level_var1']}' and TRIM(CAST({row['var2']} as varchar(999))) = '{row['level_var2']}' then {row['estimate']}"
             # 2 numerical variables
             elif pd.notnull(row['var1']) and pd.isnull(row['level_var1']) and pd.notnull(row['var2']) and pd.isnull(row['level_var2']):
-                return f"+ {row['var1']} * {row['var2']} * {row['estimate']}"
+                return f" + {row['var1']} * {row['var2']} * {row['estimate']}"
             # 1 categorical and 1 numerical variable, var1 is categorical
             elif pd.notnull(row['var1']) and pd.notnull(row['level_var1']) and pd.notnull(row['var2']) and pd.isnull(row['level_var2']):
                 return f" when TRIM(CAST({row['var1']} as varchar(999))) = '{row['level_var1']}' then {row['var2']} * {row['estimate']}"
@@ -384,7 +381,7 @@ class ScoringTableGLM():
             # If the row is not the first one and the previous row is not the same as the current one and the current row is a categorical variable
             # Add "case" to the beginning of the SQL statement
             if (i != 0) & (pd.notnull(row["level_var1"]) | pd.notnull(row["level_var2"])) & \
-                ((scoring_table.iloc[i-1,0] != row[0]) | (scoring_table.iloc[i-1,1] != row[1])):
+                ((scoring_table.iloc[i-1,0] != row.iloc[0]) | (scoring_table.iloc[i-1,1] != row.iloc[1])):
                 sql_body = f" + case {sql_body}"
             # If the row is the first one and current row is a categorical variable
             # Add "case" to the beginning of the SQL statement
@@ -399,7 +396,7 @@ class ScoringTableGLM():
             # If the row is not the last one and the next row is not the same as the current one and the current row is a categorical variable
             # Add "else 0.0 end" to the end of the SQL statement
             if (i != len(scoring_table) - 1):
-                if ((scoring_table.iloc[i+1,0] != row[0]) | (scoring_table.iloc[i+1,1] != row[1])) & \
+                if ((scoring_table.iloc[i+1,0] != row.iloc[0]) | (scoring_table.iloc[i+1,1] != row.iloc[1])) & \
                     (pd.notnull(row["level_var1"]) | pd.notnull(row["level_var2"])):
                     sql_body = f"{sql_body} else 0.0 end"
             # If the row is the last one and the current row is a categorical variable
@@ -440,7 +437,6 @@ class ScoringTableGLM():
         Uses
         ----
         scoring_table : pd.DataFrame
-            Scoring table created by the create_glm_scoring_table() function.
             Required columns: var1, var2, level_var1, level_var2
 
         model_matrix_columns : list[str]
@@ -483,16 +479,12 @@ class ScoringTableGLM():
         Uses
         ----
         self.scoring_table : pd.DataFrame
-            Scoring table created by the create_glm_scoring_table() function.
             Required columns: var1, var2, level_var1, level_var2, estimate
-
-        Notes
-        -----
-        The scoring table is uploaded to the DM_AA schema.
         """
         # Convert to string where not None
         scoring_table = self.scoring_table
-        scoring_table.loc[:,['var1', 'var2', 'level_var1', 'level_var2']] = scoring_table.loc[:,['var1', 'var2', 'level_var1', 'level_var2']].applymap(lambda x: str(x) if x is not None else x)
+        for column in ['var1', 'var2', 'level_var1', 'level_var2']:
+            scoring_table[column] = scoring_table[column].map(lambda x: str(x) if x is not np.nan else None)
         scoring_table.to_sql(*args, **kwargs)
 
     def to_csv(self, *args, **kwargs) -> None:
@@ -506,112 +498,6 @@ class ScoringTableGLM():
         Uses
         ----
         self.scoring_table : pd.DataFrame
-            Scoring table created by the create_glm_scoring_table() function.
             Required columns: var1, var2, level_var1, level_var2, estimate
         """
         self.scoring_table.to_csv(*args, **kwargs)
-
-
-
-def create_glm_scoring_table(model: GLMResultsWrapper, adjusted_coeffs: dict = None) -> pd.DataFrame:
-    """ Create a scoring table from the model fit. Suitable for statsmodels GLM.
-
-    Parameters
-    ----------
-    model : GLMResultsWrapper
-        Model fit of statsmodels GLM.
-    
-    adjusted_coeffs : dict, optional
-        Dictionary of adjusted coefficients. The default is None.
-        The format of the dictionary is as follows:
-            {variable_name: adjusted_coefficient}
-            Variable_name is the name of the variable in the model.
-        Example: {"ts_new9_g: 06": 0.20, "drpou_cpp_dop3: H": -1.74}
-
-    Returns
-    -------
-    ScoringTable
-        Scoring table as a ScoringTable object.
-
-    Notes
-    -----
-    Output of this function can be used to create scoring SQL query when uploaded to the database.
-    """
-    # Extract variables and coefficients from the model
-    vars = model.params.index
-    coeffs = model._results.params
-
-    # If adjusted coefficients are provided, append them to the list of variables and coefficients
-    if adjusted_coeffs is not None:
-        # Append adjusted coefficients to the list of variables
-        vars = list(vars)
-        vars.extend(list(adjusted_coeffs.keys()))
-        # Append adjusted coefficients to the list of coefficients
-        coeffs = list(coeffs)
-        coeffs.extend(list(adjusted_coeffs.values()))
-
-    # Initialize lists to store data for DataFrame
-    var1_list = []
-    var2_list = []
-    level1_list = []
-    level2_list = []
-
-    for var in vars:
-        # Interaction with categorical variable
-        if ":" in var:
-            variables, levels = var.split(':')
-
-            # Two categorical variables
-            if ("*" in variables) & ("*" in levels):
-                v1, v2 = variables.strip().split('*')
-                l1, l2 = levels.strip().split('*')
-                variables = [v1.strip(), v2.strip()]
-                levels = [l1.strip(), l2.strip()]
-            # One categorical and one numerical variable (categorical first)
-            elif ("*" not in variables) & ("*" in levels):
-                levels, v = levels.strip().split('*')
-                variables = [variables.strip()]
-                variables.append(v.strip())
-                levels = [levels.strip(), None]
-            # One categorical variable
-            else:
-                variables = [variables.strip(), None]
-                levels = [levels.strip(), None]
-        # Interaction of two numerical variables
-        elif "*" in var:
-            variables = var.strip().split('*')
-            variables = [v.strip() for v in variables]
-            levels = [None, None]
-
-        # One numerical variable
-        else:
-            variables = [var.strip(), None]
-            levels = [None, None]
-
-        # Append the extracted information to the respective lists
-        var1_list.append(variables[0])
-        var2_list.append(variables[1])
-        level1_list.append(levels[0])
-        level2_list.append(levels[1])
-
-    # Create a DataFrame from the lists
-    data = {
-        'var1': var1_list,
-        'var2': var2_list,
-        'level_var1': level1_list,
-        'level_var2': level2_list,
-        'estimate': coeffs
-    }
-    df = pd.DataFrame(data)
-
-    # Sort the DataFrame if adjusted coefficients are provided.
-    if adjusted_coeffs is not None:
-        # Keep Intercept at the top if it is present (should be on the first row)
-        if df.loc[0, "var1"] == "Intercept":
-            first_row = df.iloc[:1].copy()
-            sorted_rows = df.iloc[1:].sort_values(by=['var1','var2','level_var1','level_var2'], ascending=False)
-            sorted_df = pd.concat([first_row, sorted_rows], axis = 0, ignore_index=True)
-            df = sorted_df.copy()
-
-    return ScoringTableGLM(df.reset_index(drop=True))
-
