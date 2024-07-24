@@ -1,0 +1,14 @@
+var1,var2,level_variable1,level_var2,estimate
+Intercept,,,,0.8002
+cat1,,B,,-0.2669
+cat1,,C,,-0.2381
+cat1,x1,A,,-0.1496
+cat1,x1,B,,0.0902
+cat1,x1,C,,-0.0705
+cat1,cat2,B,X,-0.1392
+cat1,cat2,C,X,0.042
+cat1,cat2,A,Y,-0.233
+cat1,cat2,B,Y,-0.1277
+cat1,cat2,C,Y,-0.2801
+x1,,,,-0.1299
+x1,x2,,,0.0952

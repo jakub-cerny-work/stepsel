@@ -15,3 +15,18 @@ def load_soccer_data():
     dt = pd.read_parquet(data_path)    
     
     return dt
+
+def load_dummy_data():
+    """
+    Load the dummy data from a parquet file included in the package.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The loaded dummy data.
+    """
+    # Use 'importlib.resources' to ensure the path is correct after installation
+    data_path = resources.files("stepsel.data").joinpath("dummy_data.parquet")
+    dt = pd.read_parquet(data_path)    
+    
+    return dt
