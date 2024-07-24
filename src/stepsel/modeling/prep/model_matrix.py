@@ -174,6 +174,9 @@ def adjust_model_matrix(model_matrices: list, adjusted_coeffs: dict, offsets: li
     Adjustments are done in-place. If both matrices and offsets are provided, re-assignment is not necessary.
     If one wants to keep the original model matrices and offsets, make a copy of them before calling the function.
     """
+    # Copy the model matrices to avoid changing the original data
+    model_matrices = [model_matrix.copy() for model_matrix in model_matrices]
+
     # Create offsets if not provided
     if offsets is None:
         offsets = [None] * len(model_matrices)
@@ -186,6 +189,7 @@ def adjust_model_matrix(model_matrices: list, adjusted_coeffs: dict, offsets: li
     
     # Check if the shape of the offsets is equal to the number of rows in the model matrices
     else:
+        offsets = [offset.copy() for offset in offsets]
         for i in range(len(offsets)):
             offsets[i] = pd.Series(offsets[i])
             if offsets[i].shape[0] != model_matrices[i].shape[0]:
