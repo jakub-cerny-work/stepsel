@@ -10,7 +10,7 @@ $ pip install stepsel
 
 ## Usage
 
-- TODO
+`stepsel` was developed to allow for convenient stepwise selection modeling with `statsmodels` allowing for proper handling of categorical variables. See `docs/example.ipynb` for more.
 
 ## Contributing
 

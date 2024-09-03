@@ -24,9 +24,9 @@ def group_over_columns(dt: pd.DataFrame, columns: ArrayLike, agg_dict: dict) -> 
 
     Examples
     --------
-    >>> group_over_columns(dt, ["ts_new9_g", "drzitel_vek_nace_kat2"], {"smlr": "sum", "preds": "mean", target: "mean"})
-    >>> group_over_columns(dt, [["ts_new9_g", "drzitel_vek_nace_kat2"]], {"smlr": "sum", "preds": "mean", target: "mean"})
-    >>> group_over_columns(dt, [["ts_new9_g", "drzitel_vek_nace_kat2"], "drpou_cpp_dop3"], {"smlr": "sum", "preds": "mean", target: "mean"})
+    >>> group_over_columns(dt, ["catvar1", "catvar2"], {"smlr": "sum", "preds": "mean", target: "mean"})
+    >>> group_over_columns(dt, [["catvar1", "catvar2"]], {"smlr": "sum", "preds": "mean", target: "mean"})
+    >>> group_over_columns(dt, [["catvar1", "catvar2"], "catvar3"], {"smlr": "sum", "preds": "mean", target: "mean"})
     """
     comparison = pd.DataFrame()
     rename_dict = {}
@@ -40,7 +40,7 @@ def group_over_columns(dt: pd.DataFrame, columns: ArrayLike, agg_dict: dict) -> 
             rename_dict.update({var: "level_1"})
 
         # Group data
-        gr = dt.groupby(var).agg(agg_dict) #.reset_index().rename(columns=rename_dict)
+        gr = dt.groupby(var, observed=False).agg(agg_dict) #.reset_index().rename(columns=rename_dict)
         
         ## Get rid of multiindex
         if gr.columns.nlevels > 1:

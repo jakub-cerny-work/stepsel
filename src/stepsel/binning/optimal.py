@@ -373,7 +373,7 @@ class OptimalBinningUsingDecisionTreeRegressor():
 
         Examples
         --------
-        #### Poisson (frequency model)
+        #### Poisson
         >>> binning = OptimalBinningUsingDecisionTreeRegressor(criterion = "poisson",
                                                                scoring = "neg_mean_poisson_deviance",
                                                                refit = "neg_mean_poisson_deviance",
@@ -382,7 +382,7 @@ class OptimalBinningUsingDecisionTreeRegressor():
         >>> binning.cut_points
         >>> binning.plot_tree()
 
-        #### Gamma (severity model)
+        #### Gamma
         >>> binning = OptimalBinningUsingDecisionTreeRegressor(criterion = "squared_error",
                                                                scoring = "neg_mean_gamma_deviance",
                                                                refit = "neg_mean_gamma_deviance",
